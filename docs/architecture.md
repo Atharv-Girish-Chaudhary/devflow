@@ -1,6 +1,8 @@
 # DevFlow — Technical Architecture
 
-This document is a focused technical overview of how DevFlow works. For the full product specification, see [`product-spec.md`](product-spec.md). For the demo scenario and sample data, see [`demo-storyline.md`](demo-storyline.md).
+> This is the planned design for DevFlow. Nothing is built yet.
+
+This document is a focused technical overview of how DevFlow works. For the pre-hackathon build guide, see [`product-spec.md`](product-spec.md); where the two differ, this document wins. For the demo scenario and sample data, see [`demo-storyline.md`](demo-storyline.md).
 
 ---
 

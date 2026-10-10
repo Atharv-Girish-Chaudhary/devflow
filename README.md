@@ -2,12 +2,14 @@
 
 > **Engineering knowledge shouldn't leave with engineers.**
 
-[![Status](https://img.shields.io/badge/status-design%20%2B%20implementation%20in%20progress-yellow)](#status)
+[![Status](https://img.shields.io/badge/status-design%20stage%2C%20no%20code%20yet-yellow)](#status)
 [![Stack](https://img.shields.io/badge/stack-FastAPI%20%7C%20LangGraph%20%7C%20React-blue)](#tech-stack)
 [![Hackathon](https://img.shields.io/badge/1st%20Place-Northeastern%20Hackathon%202026-gold)](#background)
 
-**1st Place — From Prototype to Product: AI Workshop & Hackathon**
+**1st Place, From Prototype to Product: Hands-on AI Workshop and Hackathon**
 *Northeastern University · March 14, 2026*
+
+This repo holds the design so far: docs, an architecture diagram and the hackathon slides. There is no code yet.
 
 ---
 
@@ -70,8 +72,8 @@ See [`docs/architecture.md`](docs/architecture.md) for the full technical design
 | Phase | State |
 |---|---|
 | Hackathon win + product design | Done (March 2026) |
-| Demo scenario + sample data | Specified (`docs/demo-storyline.md`) |
-| Ingestion pipeline (git + PRs) | In progress |
+| Demo scenario + sample data | Specified (`docs/demo-storyline.md`); the `eventpulse-backend` demo repo is planned |
+| Ingestion pipeline (git + PRs) | Queued |
 | Departure mode (exit interview agent) | Queued |
 | Onboarding assistant (RAG chat) | Queued |
 | Knowledge map (visualization) | Queued |
@@ -82,9 +84,9 @@ See [`ROADMAP.md`](ROADMAP.md) for the build plan and timeline.
 
 ## Documentation
 
-- [`docs/product-spec.md`](docs/product-spec.md) — Full product specification
+- [`docs/product-spec.md`](docs/product-spec.md): Pre-hackathon build guide; where it differs from `docs/architecture.md`, the architecture doc wins
 - [`docs/architecture.md`](docs/architecture.md) — Technical architecture deep-dive
-- [`docs/demo-storyline.md`](docs/demo-storyline.md) — The EventPulse demo scenario
+- [`docs/demo-storyline.md`](docs/demo-storyline.md): The EventPulse demo scenario, a build guide for the planned demo repo
 - [`assets/slides.pdf`](assets/slides.pdf) — Hackathon presentation deck
 
 ---
@@ -96,8 +98,8 @@ Built by a team of 3 at the Northeastern AI Workshop & Hackathon.
 | Role | Contributor |
 |---|---|
 | Concept, RAG pipeline design, agent architecture | [Atharv Girish Chaudhary](https://github.com/Atharv-Girish-Chaudhary) |
-| Frontend & UX | *TBD* |
-| Demo data & scenario | *TBD* |
+
+The team had three members. One teammate worked on frontend and UX, and the other on demo data and the scenario.
 
 > *Teammates will be credited on request.*
 
@@ -107,7 +109,7 @@ Built by a team of 3 at the Northeastern AI Workshop & Hackathon.
 
 DevFlow was conceived and presented at **From Prototype to Product: Hands-on AI Workshop and Hackathon**, hosted by Northeastern University on March 14, 2026. The team took 1st place.
 
-This repository is the public artifact of that work — design, architecture, and ongoing implementation.
+This repository is the public artifact of that work: the design and architecture. Implementation has not started.
 
 ---
 

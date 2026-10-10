@@ -173,10 +173,10 @@ endpoint during the Black Friday load test."
 ```
 git commit -m "Add manual HMAC webhook verification instead of Stripe SDK
 
-Stripe's SDK webhook verification has a known issue with clock skew
+Stripe's SDK webhook verification, by default, fails on clock skew
 greater than 5 minutes. During testing, our staging server's NTP was
 drifting by 3-8 minutes, causing ~15% of webhooks to fail signature
-validation. The SDK has a hardcoded 5-minute tolerance.
+validation. We never changed the SDK's default 300-second tolerance.
 
 Implemented manual HMAC-SHA256 verification with a configurable
 tolerance window (default: 10 minutes). This is intentionally more
@@ -192,19 +192,19 @@ rewriting — it's heavily coupled to Stripe's signature format."
 ```
 git commit -m "HACK: Hardcode UTC for all Stripe timestamp comparisons
 
-Stripe's API returns timestamps in UTC but their webhook payloads
-include a 'created' field that uses the MERCHANT's timezone setting
-in the Stripe dashboard. Our merchant account is set to PST.
+Stripe's webhook payloads include a 'created' field that is a Unix
+timestamp (seconds since 1 January 1970 UTC), so it has no timezone.
+Our code turned it into a datetime in the server's local time (PST).
 
 This caused a 3-hour window where refund eligibility calculations
 were wrong (comparing UTC event time against PST webhook time).
 
 Workaround: Force all Stripe-related timestamps to UTC in
-timezone_helpers.py. The Stripe team acknowledged this as a known
-inconsistency (support ticket #STK-847291) but no ETA on fix.
+timezone_helpers.py. Stripe support (ticket #STK-847291) confirmed
+that 'created' is plain Unix time, so the bug was on our side.
 
-TODO: Remove this workaround when Stripe normalizes their timestamp
-handling. Check quarterly."
+TODO: Remove this workaround once all our datetimes carry an
+explicit timezone."
 ```
 
 ```
@@ -230,14 +230,14 @@ retry interval (5 seconds minimum)."
 #### Phase 3: Workarounds & Hacks (Commits 61-80) — Mostly Friend A
 
 ```
-git commit -m "Skip email validation for @eventpulse.com SSO accounts
+git commit -m "Skip email validation for @eventpulse.example.com SSO accounts
 
 Our corporate SSO (Okta) returns email addresses in a non-standard
-format — 'user@EVENTPULSE.COM' with uppercase domain. The email
+format: 'user@EVENTPULSE.EXAMPLE.COM' with uppercase domain. The email
 validation regex rejects uppercase domains per RFC 5321.
 
 Rather than making the regex case-insensitive (which could mask
-other issues), we skip validation entirely for @eventpulse.com
+other issues), we skip validation entirely for @eventpulse.example.com
 domains since SSO already guarantees the email is valid.
 
 If we switch SSO providers, re-enable validation for internal accounts."
@@ -255,7 +255,7 @@ legacy AP system from 2003 that can only parse invoices with:
 This is hardcoded by client_id for now. If we get more clients
 with custom invoice requirements, refactor into a template system.
 
-Contact for Acme billing issues: Karen Chen (karen@acmecorp.com)
+Contact for Acme billing issues: Karen Chen (karen@acmecorp.example.com)
 Their AP system is called 'LegacyFin' and it crashes on UTF-8."
 ```
 
@@ -304,12 +304,12 @@ Even if you merge them immediately, the PR descriptions are indexed by DevFlow.
 Manual HMAC-SHA256 webhook verification replacing Stripe SDK's built-in method.
 
 ## Why
-Stripe SDK has hardcoded 5-minute clock skew tolerance. Our staging server
+We kept Stripe SDK's default 5-minute clock skew tolerance. Our staging server
 drifts 3-8 minutes via NTP. ~15% webhook failure rate in staging.
 
 ## Alternatives Considered
 1. Fix NTP sync on all servers — infra team said 2-week timeline, we needed this now
-2. Use Stripe SDK with monkey-patched tolerance — fragile, breaks on SDK updates
+2. Use Stripe SDK with a wider tolerance argument: simplest, but less control over the check
 3. Manual HMAC verification — chosen approach, full control over tolerance window
 
 ## Known Limitations
@@ -363,8 +363,8 @@ on standard invoice formats. They represent ~30% of our enterprise revenue.
 - Encoding: ASCII only — their system crashes on UTF-8
 
 ## Client Contact
-Karen Chen (karen@acmecorp.com) — AP manager
-Escalation: David Liu (david.liu@acmecorp.com) — VP Finance
+Karen Chen (karen@acmecorp.example.com), AP manager
+Escalation: David Liu (david.liu@acmecorp.example.com), VP Finance
 
 ## Future
 If more clients need custom formats, refactor into a template system.
@@ -426,7 +426,7 @@ Add comments in the code that carry institutional knowledge:
 ```python
 # stripe_webhook.py
 
-# WARNING: Do not use Stripe SDK's verify_webhook_signature()
+# WARNING: Do not use Stripe SDK's construct_event()
 # Clock skew issue causes ~15% failure rate. See PR #1.
 # Manual HMAC verification with 10-min tolerance below.
 def verify_webhook(payload, sig_header, webhook_secret):
@@ -443,12 +443,11 @@ WEBHOOK_TOLERANCE_SECONDS = 600  # 10 minutes
 # timezone_helpers.py
 
 # HACK: Force UTC for all Stripe timestamp comparisons.
-# Stripe dashboard is set to PST but API returns UTC.
-# Webhook 'created' field uses merchant timezone (PST).
+# Webhook 'created' field is a Unix timestamp (no timezone),
+# but our code read it as server local time (PST).
 # This caused a 3-hour refund eligibility window bug.
-# Stripe support ticket: STK-847291 — no fix ETA.
-# Check quarterly if Stripe has resolved this.
-# Last checked: [current month/year]
+# Stripe support ticket STK-847291 confirmed 'created' is Unix time.
+# Remove once all our datetimes carry an explicit timezone.
 def normalize_stripe_timestamp(ts):
     ...
 ```
@@ -474,7 +473,7 @@ from services.users.user_service import check_permission
 # - ISO 8601 dates
 # - Currency symbols
 # - UTF-8 encoding
-# Contact: Karen Chen (karen@acmecorp.com) for billing issues.
+# Contact: Karen Chen (karen@acmecorp.example.com) for billing issues.
 # See PR #3 for full requirements.
 CUSTOM_INVOICE_CLIENTS = {
     "ACME_001": {
@@ -706,7 +705,7 @@ You need three collections in your vector DB, each storing different types of kn
 ```json
 {
   "id": "interview_q1_answer",
-  "text": "The webhook tolerance is set to 10 minutes because our staging servers had NTP drift of 3-8 minutes. The Stripe SDK only allows 5 minutes. If you tighten it, you need to first fix NTP sync across all servers...",
+  "text": "The webhook tolerance is set to 10 minutes because our staging servers had NTP drift of 3-8 minutes. The Stripe SDK defaults to 5 minutes. If you tighten it, you need to first fix NTP sync across all servers...",
   "metadata": {
     "type": "exit_interview",
     "engineer": "friend-a",
@@ -832,7 +831,7 @@ For each user query:
 │  │ Answer from       │  │  🤖 Acme Corp is your largest │
 │  │ [Friend A]:       │  │  enterprise client (~30% of   │
 │  │ "The Stripe SDK   │  │  revenue). They use a legacy  │
-│  │ has a hardcoded   │  │  AP system called LegacyFin...│
+│  │ has a default     │  │  AP system called LegacyFin...│
 │  │ 5-minute..."      │  │                                │
 │  └──────────────────┘  │  ┌──────────────────────────┐  │
 │                        │  │ Ask a question...     [↵] │  │
@@ -1069,7 +1068,7 @@ For each user query:
 
 ### Q1: Webhook Verification Tolerance
 
-> "The 10-minute tolerance is there because our servers had NTP drift of 3-8 minutes. The Stripe SDK's verify_webhook_signature function has a hardcoded 5-minute tolerance that you can't configure. We were getting about 15% webhook failures in staging because of this.
+> "The 10-minute tolerance is there because our servers had NTP drift of 3-8 minutes. The Stripe SDK's construct_event function defaults to a 5-minute tolerance, and we had never changed it. We were getting about 15% webhook failures in staging because of this.
 >
 > If you ever need to tighten the tolerance, first make sure NTP is properly synced across all servers. Talk to the infra team — when I asked them to fix it, they said it was a 2-week timeline because of how our Kubernetes nodes handle time sync.
 >
@@ -1095,7 +1094,7 @@ For each user query:
 
 > "Acme is our biggest enterprise client — about 30% of revenue. Their AP system is called LegacyFin, and it's genuinely from 2003. It can only handle ASCII, fixed date formats (DD/MM/YYYY), and commas as decimal separators.
 >
-> Karen Chen is the AP manager and your main contact. She's responsive on email (karen@acmecorp.com) but the real person who can fix things on their end is David Liu (VP Finance, david.liu@acmecorp.com). Escalate to him if invoices are rejected — Karen doesn't have authority to override LegacyFin settings.
+> Karen Chen is the AP manager and your main contact. She's responsive on email (karen@acmecorp.example.com) but the real person who can fix things on their end is David Liu (VP Finance, david.liu@acmecorp.example.com). Escalate to him if invoices are rejected; Karen doesn't have authority to override LegacyFin settings.
 >
 > One thing that bit us: they changed their tax ID format last year and didn't tell us. Our invoices were getting silently rejected for a month. Now I check with Karen quarterly to confirm their requirements haven't changed. Set a calendar reminder for this.
 >
@@ -1111,13 +1110,13 @@ For each user query:
 
 ### Q5: Stripe Timezone Hack
 
-> "This is embarrassing but important. The Stripe dashboard is configured to PST (Pacific time) because our CEO set it up from San Francisco. The API returns timestamps in UTC. But the webhook 'created' field uses the merchant's dashboard timezone — which is PST.
+> "This is embarrassing but important. Our servers run on PST (Pacific time) because our CEO set them up from San Francisco. Stripe's webhook 'created' field is a Unix timestamp (seconds since 1 January 1970 UTC), so it has no timezone of its own. But our code turned it into a datetime in the server's local time, which is PST.
 >
-> This means there's an 8-hour mismatch (or 7 during daylight saving) between API timestamps and webhook timestamps. I discovered this when refund eligibility was being calculated wrong for a 3-hour window each day.
+> This means there's an 8-hour mismatch (or 7 during daylight saving) between our UTC event times and the converted webhook times. I discovered this when refund eligibility was being calculated wrong for a 3-hour window each day.
 >
-> The fix in timezone_helpers.py forces everything to UTC. It's ugly but it works. I filed Stripe support ticket STK-847291 about this. Last I checked (two months ago), they acknowledged it as a known issue but gave no ETA.
+> The fix in timezone_helpers.py forces everything to UTC. It's ugly but it works. I filed Stripe support ticket STK-847291 before I found our bug, and they confirmed that 'created' is plain Unix time.
 >
-> Check quarterly whether Stripe has fixed this. If they have, you can remove normalize_stripe_timestamp() and all its call sites. There's about 8 places in the codebase that call it — grep for 'normalize_stripe_timestamp' to find them all."
+> Stripe has nothing to fix here. Once all our datetimes carry an explicit timezone, you can remove normalize_stripe_timestamp() and all its call sites. There's about 8 places in the codebase that call it; grep for 'normalize_stripe_timestamp' to find them all."
 
 ---
 
@@ -1155,7 +1154,7 @@ git log --name-only --format="HASH:%H" > git_files_export.txt
 # Commits by specific author
 git log --author="friend-a" --format="%H|%s|%ad" --date=short > friend_a_commits.txt
 
-# File ownership (who wrote the most lines per file)
+# File ownership (who made the most commits to each file)
 git ls-files | while read f; do
   echo "$f $(git log --format='%an' -- "$f" | sort | uniq -c | sort -rn | head -1)"
 done > file_ownership.txt
